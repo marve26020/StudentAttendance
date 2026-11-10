@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Migrate my data — Student Work Aid Attendance</title>
+  <link rel="icon" type="image/svg+xml" href="images/logo.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="container page">
+
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">Owner only · one-time tool</p>
+        <h1>Migrate my existing data</h1>
+        <p class="sub">
+          This tool tags every student, month and daily record that has no owner yet with your
+          account, and moves each month to its new private ID. Run it once. It is safe to run again.
+        </p>
+      </div>
+    </section>
+
+    <section class="card animate-in" style="max-width: 720px">
+      <div class="alert alert--info">
+        Make sure you have set your own admin record to <strong>role = owner</strong> in the Firebase
+        Console first (see the setup notes). Then press the button and wait for the log to say
+        “Migration finished”.
+      </div>
+
+      <button class="btn btn--primary" id="migrate-start" type="button" style="margin-top: var(--space-4)">
+        <span class="btn__label">Start migration</span>
+        <span class="btn__spinner"></span>
+      </button>
+
+      <pre id="migrate-log" class="migrate-log" aria-live="polite"></pre>
+    </section>
+  </main>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script type="module">
+    import { guardPage } from './js/auth.js';
+    import { initMigratePage } from './js/migrate.js';
+    // Owner only.
+    guardPage({ active: '', requireOwner: true, onReady: initMigratePage });
+  </script>
+</body>
+</html>

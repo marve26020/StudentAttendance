@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in — Student Work Aid Attendance</title>
+    <link rel="icon" type="image/svg+xml" href="images/logo.svg" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <!-- Two-column layout on laptop, single column on mobile -->
+    <main class="login-layout">
+      <!-- LEFT: brand panel (hidden on mobile) -->
+      <section class="login-brand">
+        <div class="login-brand__top">
+          <img
+            src="images/logo.png"
+            alt=""
+            onerror="
+              this.onerror = null;
+              this.src = 'images/logo.svg';
+            "
+          />
+          <span id="brand-school">Your School Name</span>
+        </div>
+        <div class="login-brand__hero">
+          <h1>Track who came to work, month by month.</h1>
+          <p id="brand-program">Student Work Aid Program</p>
+        </div>
+        <div class="login-brand__foot">
+          Admin access only · Your records are stored securely
+        </div>
+      </section>
+
+      <!-- RIGHT: the login form -->
+      <section class="login-panel">
+        <div class="login-card">
+          <!-- Logo + name shown on mobile instead of the left panel -->
+          <div class="logo-mobile">
+            <img
+              src="images/logo.png"
+              alt=""
+              onerror="
+                this.onerror = null;
+                this.src = 'images/logo.svg';
+              "
+            />
+            <strong id="brand-school-mobile">Your School Name</strong>
+          </div>
+
+          <h1>Sign in</h1>
+          <p class="sub">Welcome back — please enter your admin details.</p>
+
+          <!-- Page-level error / success messages appear here -->
+          <div class="alert alert--error" id="login-alert" hidden></div>
+
+          <form id="login-form" novalidate>
+            <div class="field">
+              <label for="login-name">Name</label>
+              <input
+                id="login-name"
+                class="input"
+                type="text"
+                autocomplete="name"
+                placeholder="e.g. Mrs Bello"
+              />
+            </div>
+            <div class="field">
+              <label for="login-email">Email</label>
+              <input
+                id="login-email"
+                class="input"
+                type="email"
+                autocomplete="email"
+                placeholder="you@school.edu"
+              />
+            </div>
+            <div class="field">
+              <label for="login-password">Password</label>
+              <div class="password-field">
+                <input
+                  id="login-password"
+                  class="input"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="••••••••"
+                />
+                <!-- Shows / hides the password so you can check what you typed -->
+                <button
+                  class="password-toggle"
+                  id="toggle-password"
+                  type="button"
+                  aria-label="Show password"
+                  aria-pressed="false"
+                ></button>
+              </div>
+            </div>
+
+            <button
+              class="btn btn--primary btn--block"
+              id="login-submit"
+              type="submit"
+            >
+              <span class="btn__label">Login</span>
+              <span class="btn__spinner"></span>
+            </button>
+          </form>
+
+          <p class="helper" style="margin-top: var(--space-4)">
+            Only registered admins can access this app.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast-stack" id="toast-stack"></div>
+
+    <script type="module">
+      import { initLoginPage } from "./js/auth.js";
+      initLoginPage();
+    </script>
+  </body>
+</html>

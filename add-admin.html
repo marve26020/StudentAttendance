@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Admin — Student Work Aid Attendance</title>
+  <link rel="icon" type="image/svg+xml" href="images/logo.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="container page">
+
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">Owner only</p>
+        <h1>Admins</h1>
+        <p class="sub">Add a staff member so they can sign in and manage their own records — or disable / remove one.</p>
+      </div>
+    </section>
+
+    <!-- Add a new admin -->
+    <section class="card animate-in" style="max-width: 560px">
+      <h2 style="margin-bottom: var(--space-4)">Add a new admin</h2>
+      <div class="alert alert--success" id="addadmin-alert" hidden></div>
+
+      <form id="add-admin-form" novalidate>
+        <div class="field">
+          <label for="admin-name">Full name</label>
+          <input id="admin-name" class="input" type="text" autocomplete="name" placeholder="e.g. Mr Okoro" />
+        </div>
+        <div class="field">
+          <label for="admin-email">Email</label>
+          <input id="admin-email" class="input" type="email" autocomplete="off" placeholder="newadmin@school.edu" />
+        </div>
+        <div class="field">
+          <label for="admin-password">Password</label>
+          <input id="admin-password" class="input" type="password" autocomplete="new-password" placeholder="At least 6 characters" />
+        </div>
+        <div class="field">
+          <label for="admin-password-confirm">Confirm password</label>
+          <input id="admin-password-confirm" class="input" type="password" autocomplete="new-password" placeholder="Repeat the password" />
+        </div>
+
+        <button class="btn btn--primary btn--block" id="addadmin-submit" type="submit">
+          <span class="btn__label">Create admin</span>
+          <span class="btn__spinner"></span>
+        </button>
+      </form>
+
+      <p class="helper" style="margin-top: var(--space-4)">
+        New admins are created as regular admins — they only ever see the records they create themselves.
+        Share the sign-in details with them so they can log in.
+      </p>
+    </section>
+
+    <!-- Manage the existing admins -->
+    <section class="card animate-in delay-1" style="margin-top: var(--space-6)">
+      <div class="card__header">
+        <h2>All administrators</h2>
+        <p>Disable an admin to switch off their access (reversible), or remove them completely.</p>
+      </div>
+
+      <div id="admins-loading">
+        <div class="skeleton" style="margin-bottom: var(--space-2)"></div>
+        <div class="skeleton"></div>
+      </div>
+
+      <!-- Rendered by js/admins.js -->
+      <div id="admins-list"></div>
+    </section>
+  </main>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script type="module">
+    import { guardPage } from './js/auth.js';
+    import { initAddAdminPage } from './js/admins.js';
+    // Only the OWNER can reach this page; a regular admin is redirected away.
+    guardPage({ active: 'add-admin', requireOwner: true, onReady: initAddAdminPage });
+  </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About — Student Work Aid Attendance</title>
+  <link rel="icon" type="image/svg+xml" href="images/logo.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="container page">
+
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">About</p>
+        <h1>About this app</h1>
+        <p class="sub">A simple, private replacement for the paper attendance book.</p>
+      </div>
+    </section>
+
+    <section class="card animate-in prose">
+      <p>
+        This app records <strong>which students came to the work aid program each day</strong>.
+        It replaces the paper process: you keep one master list of students, tick off the ones
+        who attended, and the records are grouped by month.
+      </p>
+
+      <h2>How it works</h2>
+      <ul>
+        <li><strong>Students</strong> — add every student once. This list is reused every day, so names are never re-typed.</li>
+        <li><strong>Dashboard</strong> — create a month, then open it to add daily records.</li>
+        <li><strong>Month page</strong> — add, edit or delete a day’s record, and print the whole month as a PDF.</li>
+        <li><strong>Print Record</strong> — downloads a landscape A4 sheet with student names down the side, the days of the month across the top, and a tick where each student attended.</li>
+      </ul>
+
+      <h2>What is recorded</h2>
+      <p>
+        Only two things: <strong>student names</strong> and <strong>the dates they attended</strong>.
+        No hours, notes or other fields.
+      </p>
+
+      <h2>Privacy &amp; security</h2>
+      <p>
+        Access is protected by Firebase Authentication (email + password). Only accounts
+        registered as admins can sign in — anyone else is told
+        <em>“This account is not a registered admin.”</em>
+        Firestore security rules stop anyone but a registered admin from reading or writing the
+        data, so the database is never open to the public.
+      </p>
+
+      <h2>Changing the look</h2>
+      <p>
+        All colours live in CSS variables at the top of <code>css/style.css</code>. Your school
+        name, program name and logo are set in <code>js/config.js</code>, so you can match the
+        app to your school branding in seconds.
+      </p>
+    </section>
+  </main>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script type="module">
+    import { guardPage } from './js/auth.js';
+    guardPage({ active: 'about' });
+  </script>
+</body>
+</html>

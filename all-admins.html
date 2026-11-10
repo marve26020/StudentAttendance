@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>All Admins — Student Work Aid Attendance</title>
+  <link rel="icon" type="image/svg+xml" href="images/logo.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="container page">
+
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">Owner only</p>
+        <h1>All Admins</h1>
+        <p class="sub">Click an admin to view their students and monthly records. This view is read-only — you can browse and print their records but not change them.</p>
+      </div>
+    </section>
+
+    <!-- The list of admins -->
+    <section class="card animate-in">
+      <div class="card__header">
+        <h2>Choose an admin</h2>
+      </div>
+
+      <div id="admins-loading">
+        <div class="skeleton" style="margin-bottom: var(--space-2)"></div>
+        <div class="skeleton"></div>
+      </div>
+
+      <!-- Rendered by js/admins.js -->
+      <div id="admins-list" class="month-grid"></div>
+    </section>
+
+    <!-- The selected admin's data (hidden until one is chosen) -->
+    <section class="card animate-in delay-1" id="admin-detail" style="margin-top: var(--space-6)" hidden>
+      <div class="card__header">
+        <h2><span id="detail-name">Admin</span>’s records</h2>
+        <p>Read-only. Open any month to view or print it.</p>
+      </div>
+
+      <h3 style="margin-bottom: var(--space-3)">Monthly records</h3>
+      <div id="detail-months"></div>
+
+      <h3 style="margin: var(--space-6) 0 var(--space-3)">Students</h3>
+      <div id="detail-students"></div>
+    </section>
+  </main>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script type="module">
+    import { guardPage } from './js/auth.js';
+    import { initAllAdminsPage } from './js/admins.js';
+    // Only the OWNER can reach this page.
+    guardPage({ active: 'all-admins', requireOwner: true, onReady: initAllAdminsPage });
+  </script>
+</body>
+</html>

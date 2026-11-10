@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — Student Work Aid Attendance</title>
+  <link rel="icon" type="image/svg+xml" href="images/logo.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="container page">
+
+    <!-- Welcome banner -->
+    <section class="card animate-in" style="display: flex; gap: var(--space-4); align-items: center; margin-bottom: var(--space-8)">
+      <div id="banner-logo" style="width: 52px; flex-shrink: 0"></div>
+      <div>
+        <h1 style="margin: 0 0 var(--space-1)">Welcome back, <span id="greeting">Admin</span></h1>
+        <p style="margin: 0; color: var(--color-text-muted)">
+          Record who came to work each day, then print a monthly attendance sheet.
+        </p>
+      </div>
+    </section>
+
+    <!-- The two main cards -->
+    <div class="hero-grid">
+
+      <!-- 1. Stored Records -->
+      <section class="hero-card animate-in delay-1">
+        <div class="hero-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
+            <path d="M4 10h16" />
+          </svg>
+        </div>
+        <h2>Stored Records</h2>
+        <p>Every month you have saved. Open one to see its recorded days.</p>
+
+        <!-- Skeleton placeholders while months load -->
+        <div id="months-loading">
+          <div class="skeleton" style="margin-bottom: var(--space-2)"></div>
+          <div class="skeleton"></div>
+        </div>
+
+        <!-- Live list of months is rendered here by js/months.js -->
+        <div id="months-list"></div>
+      </section>
+
+      <!-- 2. Add Monthly Record -->
+      <section class="hero-card animate-in delay-2">
+        <div class="hero-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+            <path d="M12 14v4M10 16h4" />
+          </svg>
+        </div>
+        <h2>Add Monthly Record</h2>
+        <p>Create a new month to start recording attendance.</p>
+
+        <form id="add-month-form" novalidate>
+          <div class="field">
+            <label for="month-select">Month</label>
+            <select id="month-select" class="select"></select>
+          </div>
+          <div class="field">
+            <label for="year-input">Year</label>
+            <input id="year-input" class="input" type="number" min="2000" max="2100" step="1" />
+          </div>
+          <button class="btn btn--primary btn--block" id="add-month-submit" type="submit">
+            <span class="btn__label">Create month</span>
+            <span class="btn__spinner"></span>
+          </button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script type="module" src="js/months.js"></script>
+</body>
+</html>
