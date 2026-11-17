@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Record — Student Work Aid Attendance</title>
+  <link rel="icon" type="image/svg+xml" href="images/logo.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!--
+    PDF libraries (jsPDF + autoTable) are loaded here with plain <script> tags
+    so the app can build and download the attendance sheet for this record.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+  <main class="container page">
+
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">Record</p>
+        <h1 id="record-title">Record</h1>
+        <p class="sub">View the dates you have recorded, add a new date, or print this record.</p>
+      </div>
+      <div style="display: flex; gap: var(--space-2); flex-wrap: wrap">
+        <a class="btn btn--ghost" href="dashboard.html" id="back-link">Back to dashboard</a>
+        <button class="btn btn--ghost" id="rename-record" type="button">Rename</button>
+        <button class="btn btn--danger-ghost" id="delete-record" type="button">Delete record</button>
+        <button class="btn btn--primary" id="print-record" type="button">
+          <span class="btn__label">Print Record (PDF)</span>
+          <span class="btn__spinner"></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Shown only when the owner is viewing another admin's record -->
+    <div class="alert alert--info" id="readonly-banner" hidden></div>
+
+    <div class="grid-2">
+
+      <!-- LEFT: recorded dates -->
+      <section class="card animate-in">
+        <div class="card__header">
+          <h2>Recorded Dates</h2>
+          <p id="days-summary"></p>
+        </div>
+
+        <div id="days-loading">
+          <div class="skeleton" style="margin-bottom: var(--space-2)"></div>
+          <div class="skeleton" style="margin-bottom: var(--space-2)"></div>
+          <div class="skeleton"></div>
+        </div>
+
+        <!-- Date rows are rendered here by js/record.js -->
+        <div id="days-list"></div>
+      </section>
+
+      <!-- RIGHT: create / edit a daily record -->
+      <section class="card animate-in delay-1" id="create-record-card">
+        <div class="card__header">
+          <h2 id="form-heading">Create Daily Record</h2>
+          <p>Pick any date, then tick the students who came.</p>
+        </div>
+
+        <!-- Info / warning messages (e.g. "record already exists") -->
+        <div class="alert alert--warning" id="record-info" hidden></div>
+
+        <form id="create-record-form" novalidate>
+          <div class="field">
+            <label for="record-date">Date</label>
+            <input id="record-date" class="input" type="date" />
+          </div>
+
+          <div class="field" style="margin-bottom: var(--space-3)">
+            <label>Students who attended</label>
+
+            <div class="checklist-toolbar">
+              <div class="search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+                </svg>
+                <input id="checklist-search" class="input" type="text" placeholder="Search…" autocomplete="off" />
+              </div>
+              <button class="btn btn--ghost btn--sm" id="select-all" type="button">Select all</button>
+              <button class="btn btn--ghost btn--sm" id="clear-all" type="button">Clear all</button>
+            </div>
+
+            <!-- Student checkboxes are rendered here by js/record.js -->
+            <div class="checklist" id="checklist"></div>
+          </div>
+
+          <div style="display: flex; gap: var(--space-2); flex-wrap: wrap">
+            <button class="btn btn--primary" id="save-record" type="submit">
+              <span class="btn__label">Save record</span>
+              <span class="btn__spinner"></span>
+            </button>
+            <button class="btn btn--ghost" id="cancel-edit" type="button" hidden>Cancel edit</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script type="module" src="js/record.js"></script>
+</body>
+</html>
