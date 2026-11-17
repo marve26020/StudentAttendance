@@ -8,7 +8,7 @@
          Add a new admin, and Disable / Enable / Remove existing ones.
 
      • all-admins.html → initAllAdminsPage()
-         Browse every admin and view their students + monthly records
+         Browse every admin and view their students + records
          (read-only).
 
    How a new admin is created without logging you out:
@@ -225,7 +225,8 @@ async function toggleDisabled(a) {
 }
 
 /* Delete an admin record entirely. They can no longer sign in or see data,
-   but their students / months / days stay in the database for the owner. */
+   but their students / records / recorded dates stay in the database for the
+   owner. */
 async function removeAdmin(a) {
   const confirmed = await confirmModal({
     title: "Remove admin",
@@ -247,7 +248,7 @@ async function removeAdmin(a) {
 /* ==========================================================================
    all-admins.html
    ========================================================================== */
-let unsubMonths = null;
+let unsubRecords = null;
 let unsubStudents = null;
 
 export function initAllAdminsPage() {
@@ -265,9 +266,9 @@ export function initAllAdminsPage() {
       listEl.innerHTML = admins
         .map(
           (a) => `
-        <button class="month-tile admin-tile" type="button" data-uid="${escapeHtml(a.uid)}" data-name="${escapeHtml(a.name || a.email || "Admin")}">
-          <span class="month-tile__name">${escapeHtml(a.name || "Unnamed admin")} ${roleBadge(a.role)}</span>
-          <span class="month-tile__meta">${escapeHtml(a.email || "")}</span>
+        <button class="record-tile admin-tile" type="button" data-uid="${escapeHtml(a.uid)}" data-name="${escapeHtml(a.name || a.email || "Admin")}">
+          <span class="record-tile__name">${escapeHtml(a.name || "Unnamed admin")} ${roleBadge(a.role)}</span>
+          <span class="record-tile__meta">${escapeHtml(a.email || "")}</span>
         </button>`,
         )
         .join("");
@@ -290,45 +291,51 @@ export function initAllAdminsPage() {
   );
 }
 
-/* Load the selected admin's months and students (read-only). */
+/* Load the selected admin's records and students (read-only). */
 function showAdminDetail(uid, name) {
-  if (typeof unsubMonths === "function") unsubMonths();
+  if (typeof unsubRecords === "function") unsubRecords();
   if (typeof unsubStudents === "function") unsubStudents();
 
   const detail = qs("#admin-detail");
   const detailName = qs("#detail-name");
-  const monthsEl = qs("#detail-months");
+  const recordsEl = qs("#detail-records");
   const studentsEl = qs("#detail-students");
   detail.hidden = false;
   detailName.textContent = name;
-  monthsEl.innerHTML = '<div class="skeleton"></div>';
+  recordsEl.innerHTML = '<div class="skeleton"></div>';
   studentsEl.innerHTML = '<div class="skeleton"></div>';
 
-  // Months belonging to this admin.
-  unsubMonths = onSnapshot(
-    query(collection(db, "months"), where("ownerId", "==", uid)),
+  // Records (titles) belonging to this admin.
+  unsubRecords = onSnapshot(
+    query(collection(db, "records"), where("ownerId", "==", uid)),
     (snapshot) => {
-      const months = snapshot.docs
+      const records = snapshot.docs
         .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
         .sort((a, b) =>
-          String(b.sortKey || b.id).localeCompare(String(a.sortKey || a.id)),
+          String(a.title || "").localeCompare(
+            String(b.title || ""),
+            undefined,
+            {
+              sensitivity: "base",
+            },
+          ),
         );
 
-      monthsEl.innerHTML = months.length
-        ? `<div class="month-grid">${months
+      recordsEl.innerHTML = records.length
+        ? `<div class="record-grid">${records
             .map(
-              (m) => `
-            <a class="month-tile" href="month.html?id=${encodeURIComponent(m.id)}">
-              <span class="month-tile__name">${escapeHtml(m.label || m.sortKey || m.id)}</span>
-              <span class="month-tile__meta">${Number(m.dayCount) || 0} recorded day${(Number(m.dayCount) || 0) === 1 ? "" : "s"}</span>
+              (r) => `
+            <a class="record-tile" href="record.html?id=${encodeURIComponent(r.id)}">
+              <span class="record-tile__name">${escapeHtml(r.title || "Untitled record")}</span>
+              <span class="record-tile__meta">${Number(r.dayCount) || 0} recorded date${(Number(r.dayCount) || 0) === 1 ? "" : "s"}</span>
             </a>`,
             )
             .join("")}</div>`
-        : `<div class="empty">${ICONS.inbox}<h3>No months</h3><p>This admin has not created any months yet.</p></div>`;
+        : `<div class="empty">${ICONS.inbox}<h3>No records</h3><p>This admin has not created any records yet.</p></div>`;
     },
     (error) => {
       console.error(error);
-      monthsEl.innerHTML = `<div class="alert alert--error">Could not load months. ${escapeHtml(error.message)}</div>`;
+      recordsEl.innerHTML = `<div class="alert alert--error">Could not load records. ${escapeHtml(error.message)}</div>`;
     },
   );
 

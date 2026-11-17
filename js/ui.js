@@ -48,7 +48,6 @@ export const MONTH_NAMES = [
 
 export const pad2 = (n) => String(n).padStart(2, "0");
 export const monthName = (month) => MONTH_NAMES[month - 1] || "";
-export const formatMonthLabel = (year, month) => `${monthName(month)} ${year}`;
 
 /** 'YYYY-MM-DD' → '21 November 2026' */
 export function formatDayLong(isoDate) {
@@ -56,14 +55,17 @@ export function formatDayLong(isoDate) {
   return `${d} ${monthName(m)} ${y}`;
 }
 
+/** 'YYYY-MM-DD' → '21/11/26' (day/month/two-digit year), for the PDF column headings. */
+export function formatShortDate(isoDate) {
+  const [y, m, d] = String(isoDate).split("-");
+  return `${d}/${m}/${String(y).slice(-2)}`;
+}
+
 /** Today as 'YYYY-MM-DD' (local time, not UTC). */
 export function todayISO() {
   const t = new Date();
   return `${t.getFullYear()}-${pad2(t.getMonth() + 1)}-${pad2(t.getDate())}`;
 }
-
-/** Number of days in a month. */
-export const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
 
 /** Format a Firestore Timestamp (or anything Date-like) as '12 Nov 2026'. */
 export function formatAddedDate(timestamp) {

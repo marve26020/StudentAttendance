@@ -8,13 +8,13 @@ flowchart LR
     A["Login page"]
     B["Dashboard"]
     C["Students page"]
-    D["Month page"]
-    E["Owner tools: Add Admin, All Admins, Migrate"]
+    D["Record page"]
+    E["Owner tools: Add Admin, All Admins, Convert"]
     F["Shared JS: auth, firebase-config, ui"]
   end
   subgraph BaaS["Firebase (external service)"]
     G["Firebase Authentication (Email/Password)"]
-    H["Cloud Firestore (admins, students, months, days)"]
+    H["Cloud Firestore (admins, students, records, days)"]
     I["Firebase Hosting (optional deploy)"]
   end
   F --> G
@@ -54,12 +54,12 @@ All pages are static files. The Firebase **web SDK (v13.2.0, ES module)** is loa
 ```
 studentWorkAid/
 ├─ index.html            # Login page (first page visitors see)
-├─ dashboard.html        # Home / admin dashboard
+├─ dashboard.html        # Home / admin dashboard (Stored Records + Add Record)
 ├─ students.html         # Master student list
-├─ month.html            # Single month page (day records + create + print)
+├─ record.html           # Single record page (one title: recorded dates + create + print)
 ├─ add-admin.html        # Add / disable / remove admins (owner-only)
 ├─ all-admins.html       # Browse every admin's data (owner-only)
-├─ migrate.html          # One-time migration tool (owner-only)
+├─ migrate.html          # One-time converter: old months → titled records (owner-only)
 ├─ about.html            # About page
 ├─ images/
 │  └─ logo.png           # Placeholder school logo (replace with your own)
@@ -68,13 +68,13 @@ studentWorkAid/
 └─ js/
    ├─ firebase-config.js # Firebase init + exported auth/db handles
    ├─ auth.js            # Sign in/out, admin + role check, page guard
-   ├─ ui.js              # Shared UI helpers: nav, toasts, loading, formatting
+   ├─ ui.js              # Shared UI helpers: nav, toasts, loading, date formatting
    ├─ students.js        # Students page logic
-   ├─ months.js          # Dashboard: list months + create month
-   ├─ month.js           # Month page: days list, create/edit/delete day
+   ├─ records.js         # Dashboard: list records + create record (by title)
+   ├─ record.js          # Record page: recorded dates, create/edit/delete day
    ├─ admins.js          # Owner tooling: add/disable/remove admins + browse all
-   ├─ migrate.js         # One-time migration of pre-ownerId data
-   └─ pdf.js             # Monthly attendance PDF (jsPDF + autoTable)
+   ├─ migrate.js         # One-time conversion of old months → titled records
+   └─ pdf.js             # Per-record attendance PDF (jsPDF + autoTable)
 ```
 
 ## 3. Route Definitions
@@ -84,12 +84,12 @@ Multi-page app (real files, not a SPA router):
 | Route                   | Purpose                                                                 |
 | ----------------------- | ----------------------------------------------------------------------- |
 | `/index.html`           | Login page (public). Redirects to `dashboard.html` if already an admin. |
-| `/dashboard.html`       | Home; Stored Records list + Add Monthly Record. Admin-only.             |
+| `/dashboard.html`       | Home; Stored Records list + Add Record. Admin-only.                     |
 | `/students.html`        | Master student list (add/edit/delete/search). Admin-only.               |
-| `/month.html?id=<docId>`| One month: recorded days, create daily record, print PDF. Admin-only. Read-only when the owner views another admin's month. |
+| `/record.html?id=<docId>`| One record (a title): recorded dates, create daily record, rename/delete, print PDF. Admin-only. Read-only when the owner views another admin's record. |
 | `/add-admin.html`       | Add / disable / remove admins. **Owner-only.**                          |
-| `/all-admins.html`      | Browse every admin's students + months (read-only). **Owner-only.**     |
-| `/migrate.html`         | Temporary one-time migration tool. **Owner-only.**                      |
+| `/all-admins.html`      | Browse every admin's students + records (read-only). **Owner-only.**    |
+| `/migrate.html`         | Convert old monthly records to titled records (one time). **Owner-only.** |
 | `/about.html`           | About the program. Admin-only.                                          |
 | `/logout` (action)      | Sign out via Firebase Auth, then return to `index.html`.                |
 
@@ -105,12 +105,14 @@ No custom backend API. The app talks to Firebase directly through the SDK:
 | Check admin / role      | `getDoc(doc(db, 'admins', uid))` → `role`, `disabled`                             |
 | List my students        | `onSnapshot(query(collection(db, 'students'), where('ownerId', '==', uid)))`      |
 | Add/edit/delete student | `addDoc` / `updateDoc` / `deleteDoc` on `students` (with `ownerId`)               |
-| List my months          | `onSnapshot(query(collection(db, 'months'), where('ownerId', '==', uid)))`        |
-| Create month            | `setDoc(doc(db, 'months', `${uid}_YYYY-MM`), { ownerId: uid, ... })`              |
-| List days in month      | `onSnapshot(query(collection(db, 'months', id, 'days'), where('ownerId', '==', monthOwnerId)))` |
-| Save day                | `setDoc(doc(db, 'months', id, 'days', 'YYYY-MM-DD'), { ownerId, ... })`           |
-| Delete day              | `deleteDoc(doc(db, 'months', id, 'days', 'YYYY-MM-DD'))`                          |
-| Owner: view one admin   | `where('ownerId', '==', targetUid)` on `students` / `months` (owner only)         |
+| List my records         | `onSnapshot(query(collection(db, 'records'), where('ownerId', '==', uid)))`        |
+| Create record           | `addDoc(collection(db, 'records'), { ownerId: uid, title, dayCount: 0, ... })`     |
+| Rename record           | `updateDoc(doc(db, 'records', id), { title })`                                     |
+| Delete record           | delete each `days` doc, then `deleteDoc(doc(db, 'records', id))`                   |
+| List dates in a record  | `onSnapshot(query(collection(db, 'records', id, 'days'), where('ownerId', '==', recordOwnerId)))` |
+| Save day                | `setDoc(doc(db, 'records', id, 'days', 'YYYY-MM-DD'), { ownerId, date, students, count, ... })` |
+| Delete day              | `deleteDoc(doc(db, 'records', id, 'days', 'YYYY-MM-DD'))`                          |
+| Owner: view one admin   | `where('ownerId', '==', targetUid)` on `students` / `records` (owner only)         |
 | Owner: disable admin    | `updateDoc(doc(db, 'admins', uid), { disabled: true })`                           |
 | Owner: remove admin     | `deleteDoc(doc(db, 'admins', uid))`                                               |
 
@@ -125,8 +127,8 @@ Not applicable — serverless BaaS. Flow is: Browser (SDK) → Firebase Auth / F
 ```mermaid
 erDiagram
   ADMINS ||--o{ STUDENTS : "owns"
-  ADMINS ||--o{ MONTHS : "owns"
-  MONTHS ||--o{ DAYS : "contains"
+  ADMINS ||--o{ RECORDS : "owns"
+  RECORDS ||--o{ DAYS : "contains"
 
   ADMINS {
     string uid PK "= Firebase Auth uid"
@@ -142,20 +144,17 @@ erDiagram
     string ownerId FK "= admin uid who created it"
     timestamp createdAt
   }
-  MONTHS {
-    string id PK "'<ownerId>_YYYY-MM'"
+  RECORDS {
+    string id PK "auto id (the container)"
     string ownerId FK "= admin uid"
-    number year
-    number month "1-12"
-    string label "e.g. November 2026"
-    string sortKey "= YYYY-MM"
+    string title "free text, e.g. GST"
     number dayCount
     timestamp createdAt
   }
   DAYS {
-    string id PK "YYYY-MM-DD (doc under months/{id}/days)"
-    string ownerId FK "= month's ownerId"
-    string date "YYYY-MM-DD"
+    string id PK "YYYY-MM-DD (doc under records/{id}/days)"
+    string ownerId FK "= record's ownerId"
+    string date "YYYY-MM-DD (any date)"
     array students "snapshot: [{ id, name }]"
     number count "= students.length"
     timestamp updatedAt
@@ -166,9 +165,11 @@ erDiagram
 `{ id, name }` at the time of recording. So if a student is later removed from the master list,
 past records still display and print their name correctly.
 
-**Why the month id is** **`<ownerId>_YYYY-MM`:** the old scheme used a plain `2026-11`, which is
-global — two admins both creating "November 2026" would have collided. Prefixing the id with the
-owning admin's uid gives every admin their own private `2026-11`.
+**Why a record document (not the title) is the container:** the title is free text the admin
+chooses, so it is NOT unique or URL-safe. Each record therefore gets its own auto-generated
+document id, and the title is stored as a plain field. Inside the record, each recorded date is a
+document in a `days` sub-collection whose id is the date itself (`YYYY-MM-DD`), which makes
+"one record per date" automatic and lets any date be used (no month limit).
 
 ### 6.2 Data Definition
 
@@ -180,9 +181,9 @@ Firestore is schemaless; the following documents the intended shape plus the sec
 
 * `students/{autoId}` → `{ name: string, ownerId: string, createdAt: Timestamp }`
 
-* `months/{ownerId}_{YYYY-MM}` → `{ ownerId: string, year: number, month: number, label: string, sortKey: string, dayCount: number, createdAt: Timestamp }`
+* `records/{autoId}` → `{ ownerId: string, title: string, dayCount: number, createdAt: Timestamp }`
 
-* `months/{ownerId}_{YYYY-MM}/days/{YYYY-MM-DD}` → `{ ownerId: string, date: string, students: [{id, name}], count: number, updatedAt: Timestamp }`
+* `records/{autoId}/days/{YYYY-MM-DD}` → `{ ownerId: string, date: string, students: [{id, name}], count: number, updatedAt: Timestamp }`
 
 **Firestore Security Rules** (paste into Firebase Console → Firestore → Rules)
 
@@ -227,7 +228,21 @@ service cloud.firestore {
       allow update, delete: if isOwner() || (isAdmin() && resource.data.ownerId == request.auth.uid);
     }
 
-    // ---- Months (+ their days) ------------------------------------------
+    // ---- Records (+ their recorded dates) --------------------------------
+    match /records/{recordId} {
+      allow read:   if isOwner() || (isAdmin() && resource.data.ownerId == request.auth.uid);
+      allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isOwner() || (isAdmin() && resource.data.ownerId == request.auth.uid);
+
+      match /days/{dayId} {
+        allow read:   if isOwner() || (isAdmin() && resource.data.ownerId == request.auth.uid);
+        allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
+        allow update, delete: if isOwner() || (isAdmin() && resource.data.ownerId == request.auth.uid);
+      }
+    }
+
+    // ---- Legacy months (kept only so the one-time converter can read/delete
+    //      the old data). Not used by the app any more. ----------------------
     match /months/{monthId} {
       allow read:   if isOwner() || (isAdmin() && resource.data.ownerId == request.auth.uid);
       allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
@@ -252,10 +267,14 @@ service cloud.firestore {
 
 * `isAdmin()` = "signed in AND my admin record exists AND it is not switched off." `isOwner()` =
   "I am an admin whose `role` is `owner`."
-* **Students / months / days:** a regular admin may only touch a document when its `ownerId` equals
-  their own uid (for reads *and* writes). The owner (`isOwner()`) is allowed everything.
+* **Students / records / recorded dates:** a regular admin may only touch a document when its
+  `ownerId` equals their own uid (for reads *and* writes). The owner (`isOwner()`) is allowed
+  everything.
 * Every query in the app is filtered by `ownerId`, which is what Firestore needs to prove a
-  list-read is safe. (This is why the day list also filters by `ownerId`.)
+  list-read is safe. (This is why the recorded-date list also filters by `ownerId`.)
+* The `months` block is **legacy**: the app no longer uses it, but it is left in place so the
+  owner-only converter can read and delete the old data. Once you are happy everything is
+  converted, you may delete that block (and the old `months` collection).
 * **Only the owner** may create, update or delete documents in `admins/` — so nobody can make
   themselves an admin, and a regular admin cannot add or remove anyone.
 * A signed-in person may still read their *own* `admins/{uid}` record — that is how the app decides
@@ -271,15 +290,22 @@ service cloud.firestore {
 
 * The requirement is a *downloadable* file, not just a browser print dialog → jsPDF produces a real `.pdf`.
 
-* `autoTable` renders a proper grid (students = rows, days = columns) with header repetition and cell
+* `autoTable` renders a proper grid (students = rows, recorded dates = columns) with header repetition and cell
   styling, which is tedious to hand-build.
 
 * It works offline once the CDN script is cached, needs no build step, and supports the required
-  **landscape A4**, a title header block (school name / program / month+year) and a footer block for
+  **landscape A4**, a title header block (school name / program / record title) and a footer block for
   the supervisor's name and signature line.
 
+* When a record has more dates than fit across one page, the table splits horizontally. The options
+  `horizontalPageBreak: true` and `horizontalPageBreakRepeat: 'first'` make autoTable repeat the
+  first column (the student names) on every page, so each page is readable on its own.
+
+* Date column headings use the short form **day/month/two-digit-year** (e.g. `13/11/26`), produced by
+  `formatShortDate()` in `js/ui.js`.
+
 A CSS `@media print` stylesheet is simpler but only prints via the browser and offers no control over
-the downloaded file — so it is used only as a nice-to-have fallback for the month page layout.
+the downloaded file — so it is used only as a nice-to-have fallback for the record page layout.
 
 ## 8. Firebase Setup Summary
 
@@ -303,9 +329,10 @@ the downloaded file — so it is used only as a nice-to-have fallback for the mo
 6. Publish the security rules from §6.2.
 7. Further admins are added from the in-app **Add Admin** page (owner only). Each new admin is created
    with `role: 'admin'` and `disabled: false` automatically — you never set those by hand again.
-8. **Existing data migration (one time, owner only):** open `/migrate.html` while signed in as the
-   owner. It tags every old student with your uid and re-keys every old `YYYY-MM` month to
-   `{your-uid}_YYYY-MM`, then deletes the old copies. It is safe to run more than once.
+8. **Convert old data (one time, owner only):** open `/migrate.html` while signed in as the
+   owner. It turns every old **month** into a **record** whose title is the month's name (for
+   example "November 2026"), copies every recorded date into it, then deletes the old copy. It is
+   safe to run more than once.
 
 **How to test the rules.** Sign in as a regular admin, open the browser console, and try to read
 another admin's data — you should get `Missing or insufficient permissions`:
@@ -318,6 +345,6 @@ import('/js/firebase-config.js').then(async (m) => {
 });
 ```
 
-Then confirm the *positive* cases: the owner can read `students`/`months`/`admins` freely, and only
+Then confirm the *positive* cases: the owner can read `students`/`records`/`admins` freely, and only
 the owner can write to `admins/`.
 

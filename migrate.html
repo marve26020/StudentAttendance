@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Migrate my data — Student Work Aid Attendance</title>
+  <title>Convert my old records — Student Work Aid Attendance</title>
   <link rel="icon" type="image/svg+xml" href="images/logo.svg" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -13,23 +13,24 @@
     <section class="page-header">
       <div>
         <p class="eyebrow">Owner only · one-time tool</p>
-        <h1>Migrate my existing data</h1>
+        <h1>Convert my old records</h1>
         <p class="sub">
-          This tool tags every student, month and daily record that has no owner yet with your
-          account, and moves each month to its new private ID. Run it once. It is safe to run again.
+          This tool turns every old <strong>month</strong> into a <strong>record</strong> with the
+          month's name as its title (for example “November 2026”), keeping all the dates and
+          students inside it. Run it once. It is safe to run again.
         </p>
       </div>
     </section>
 
     <section class="card animate-in" style="max-width: 720px">
       <div class="alert alert--info">
-        Make sure you have set your own admin record to <strong>role = owner</strong> in the Firebase
-        Console first (see the setup notes). Then press the button and wait for the log to say
-        “Migration finished”.
+        Make sure your admin record has <strong>role = owner</strong> in the Firebase Console
+        first. Then press the button and wait for the log to say “Conversion finished”. Nothing
+        is removed until its new record has been saved.
       </div>
 
       <button class="btn btn--primary" id="migrate-start" type="button" style="margin-top: var(--space-4)">
-        <span class="btn__label">Start migration</span>
+        <span class="btn__label">Start conversion</span>
         <span class="btn__spinner"></span>
       </button>
 

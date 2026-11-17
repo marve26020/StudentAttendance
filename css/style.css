@@ -409,12 +409,12 @@ img { max-width: 100%; display: block; }
 .stat__value { font-family: var(--font-display); font-size: 1.7rem; font-weight: 700; line-height: 1; }
 .stat__label { font-size: 0.78rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
-.month-grid {
+.record-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: var(--space-3);
 }
-.month-tile {
+.record-tile {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -426,9 +426,9 @@ img { max-width: 100%; display: block; }
   color: inherit;
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
-.month-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--color-primary); text-decoration: none; }
-.month-tile__name { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; }
-.month-tile__meta { font-size: 0.82rem; color: var(--color-text-muted); }
+.record-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--color-primary); text-decoration: none; }
+.record-tile__name { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; }
+.record-tile__meta { font-size: 0.82rem; color: var(--color-text-muted); }
 
 /* --------------------------------------------------------------------------
    9. LISTS (students, recorded days)
@@ -757,7 +757,7 @@ img { max-width: 100%; display: block; }
 .badge--ok    { background: var(--color-success-bg); color: var(--color-success); }
 .badge--muted { background: var(--color-surface-2); color: var(--color-text-faint); }
 
-/* Clickable admin cards on the All Admins page (a .month-tile used as a button) */
+/* Clickable admin cards on the All Admins page (a .record-tile used as a button) */
 .admin-tile {
   font-family: var(--font-body);
   text-align: left;

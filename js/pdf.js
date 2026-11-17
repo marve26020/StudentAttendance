@@ -1,17 +1,21 @@
 /* ==========================================================================
-   js/pdf.js — Monthly attendance PDF
+   js/pdf.js — Attendance PDF for ONE record
    --------------------------------------------------------------------------
    Builds a landscape A4 sheet with jsPDF + jspdf-autotable:
 
         School name
         Program name
-        Monthly Attendance Record — November 2026
+        GST                                   ← the record's title
 
-        | Student | 3 | 5 | 6 | ... |   ← day-of-month columns
-        | Ama     |   | ✓ | ✓ |     |
-        | Kofi    | ✓ |   | ✓ |     |
+        | Student | 13/11/26 | 20/11/26 | ... |   ← recorded-date columns
+        | Ama     |    ✓     |    ✓     |     |
+        | Kofi    |          |    ✓     |     |
 
-   The two libraries are loaded with plain <script> tags on month.html, which
+   Date columns are headed day/month/two-digit-year (e.g. 13/11/26). If there
+   are too many dates to fit across the page, the table splits onto more pages
+   horizontally and REPEATS the student-names column on each page.
+
+   The two libraries are loaded with plain <script> tags on record.html, which
    is why we read them off `window` here.
 
    A "✓" tick is DRAWN with vector lines (not typed) because the standard PDF
@@ -19,27 +23,27 @@
    ========================================================================== */
 
 import { APP_CONFIG } from './config.js';
-import { monthName } from './ui.js';
+import { formatShortDate } from './ui.js';
 
 /**
  * @param {Object}  options
- * @param {number}  options.year     e.g. 2026
- * @param {number}  options.month    e.g. 11 (1–12)
- * @param {Array}   options.days     recorded days: [{ date: '2026-11-21', students: [{id,name}] }]
+ * @param {string}  options.title    the record's title, e.g. "GST"
+ * @param {Array}   options.days     recorded dates: [{ date: '2026-11-13', students: [{id,name}] }]
  * @param {Array}   options.students master list: [{ id, name }]
  */
-export function generateMonthlyPdf({ year, month, days, students }) {
+export function generateRecordPdf({ title, days, students }) {
   const jsPDF = window.jspdf && window.jspdf.jsPDF;
   if (!jsPDF) {
     throw new Error('The PDF library could not be loaded. Check your internet connection and reload the page.');
   }
   if (!days || !days.length) {
-    throw new Error('There are no recorded days to print.');
+    throw new Error('There are no recorded dates to print.');
   }
 
-  // Recorded days, oldest first → they become the columns.
+  const heading = title || 'Attendance Record';
+
+  // Recorded dates, oldest first → they become the columns.
   const columns = [...days].sort((a, b) => a.date.localeCompare(b.date));
-  const dayNumbers = columns.map((d) => Number(d.date.split('-')[2]));
 
   // Rows = master list + any student who only exists inside an old record
   // (so removing a student from the master list never loses their history).
@@ -54,7 +58,7 @@ export function generateMonthlyPdf({ year, month, days, students }) {
     .map(([id, name]) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-  // marks[rowIndex][columnIndex] = did this student attend this day?
+  // marks[rowIndex][columnIndex] = did this student attend this date?
   const marks = rows.map(({ id }) =>
     columns.map((day) => (day.students || []).some((s) => s.id === id))
   );
@@ -63,7 +67,6 @@ export function generateMonthlyPdf({ year, month, days, students }) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const marginX = 28;
-  const contentWidth = pageWidth - marginX * 2;
 
   /* ---------------------------- Title block ---------------------------- */
   let cursorY = 42;
@@ -80,28 +83,25 @@ export function generateMonthlyPdf({ year, month, days, students }) {
   cursorY += 22;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.text(`Monthly Attendance Record — ${monthName(month)} ${year}`, pageWidth / 2, cursorY, {
-    align: 'center',
-  });
+  doc.text(heading, pageWidth / 2, cursorY, { align: 'center' });
 
   cursorY += 14;
   doc.setDrawColor(15, 118, 110);
   doc.setLineWidth(1.2);
   doc.line(marginX, cursorY, pageWidth - marginX, cursorY);
 
-  /* --------------------------- Column widths --------------------------- */
+  /* --------------------------- Column widths ---------------------------
+     Fixed widths: if the dates are too many to fit across the page, the
+     table splits horizontally and repeats the first (student) column. */
   const nameColWidth = 150;
-  let dayColWidth = 26;
-  if (nameColWidth + dayColWidth * columns.length > contentWidth) {
-    dayColWidth = Math.max(15, Math.floor((contentWidth - nameColWidth) / columns.length));
-  }
+  const dateColWidth = 34;
   const columnStyles = { 0: { cellWidth: nameColWidth, halign: 'left', fontStyle: 'bold' } };
   for (let i = 1; i <= columns.length; i += 1) {
-    columnStyles[i] = { cellWidth: dayColWidth };
+    columnStyles[i] = { cellWidth: dateColWidth };
   }
 
   /* ------------------------------ Table -------------------------------- */
-  const headRow = ['Student', ...dayNumbers.map(String)];
+  const headRow = ['Student', ...columns.map((d) => formatShortDate(d.date))];
   const bodyRows = rows.map(({ name }) => [name, ...columns.map(() => '')]);
 
   doc.autoTable({
@@ -111,10 +111,14 @@ export function generateMonthlyPdf({ year, month, days, students }) {
     theme: 'grid',
     tableWidth: 'wrap',
     margin: { left: marginX, right: marginX, bottom: 40 },
+    // Split across pages when the dates are too many for one page, and repeat
+    // the student-names column on every page.
+    horizontalPageBreak: true,
+    horizontalPageBreakRepeat: 'first',
     styles: {
       font: 'helvetica',
       fontSize: 7.5,
-      cellPadding: 3,
+      cellPadding: 2.5,
       minCellHeight: 17,
       halign: 'center',
       valign: 'middle',
@@ -126,11 +130,12 @@ export function generateMonthlyPdf({ year, month, days, students }) {
       fillColor: [15, 118, 110],
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 8,
+      fontSize: 6.8,
+      cellPadding: 2,
     },
     alternateRowStyles: { fillColor: [247, 247, 244] },
     columnStyles,
-    // Draw a tick in the cell when the student attended that day.
+    // Draw a tick in the cell when the student attended that date.
     didDrawCell(data) {
       if (data.section !== 'body' || data.column.index === 0) return;
       const rowIndex = data.row.index;
@@ -180,5 +185,6 @@ export function generateMonthlyPdf({ year, month, days, students }) {
   doc.line(signLabelX + 58, signY + labelGap, signLabelX + 58 + lineWidth, signY + labelGap);
 
   /* ------------------------------- Save -------------------------------- */
-  doc.save(`${APP_CONFIG.pdfFileNamePrefix}-${monthName(month)}-${year}.pdf`);
+  const safeTitle = heading.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
+  doc.save(`${APP_CONFIG.pdfFileNamePrefix}-${safeTitle || 'record'}.pdf`);
 }

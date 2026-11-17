@@ -1,19 +1,27 @@
 /* ==========================================================================
-   js/migrate.js — One-time data migration (migrate.html)
+   js/migrate.js — Convert OLD "month" records into NEW "title" records
    --------------------------------------------------------------------------
-   Older records were saved BEFORE this app had private workspaces, so they
-   have no owner and their month ids are plain "2026-11". This tool, run once by
-   the owner, does two things:
+   Used by migrate.html (OWNER ONLY, one time).
 
-     1. Students: adds ownerId = your user id to every student that has none.
-     2. Months  : for every month with a plain id ("2026-11"), it:
-          • creates a new month document with the id "<yourId>_2026-11" and
-            ownerId = your user id,
-          • copies every daily record into the new month (adding ownerId),
-          • then deletes the old month and its old days.
+   OLD layout                       NEW layout
+   ----------------------------     --------------------------------
+   months/2026-11                   records/converted_2026-11
+     • label: "November 2026"         • title: "November 2026"
+     • dayCount                       • dayCount
+     └ days/2026-11-13                └ days/2026-11-13
+         • students: [ … ]                • students: [ … ]
 
-   It is SAFE TO RUN MORE THAN ONCE: anything already migrated is skipped.
-   Nothing is deleted until its replacement has been written.
+   For every old month we:
+     1. read its recorded dates,
+     2. create a new record whose TITLE is the month's name,
+     3. copy every recorded date into the new record,
+     4. and only then delete the old month and its dates.
+
+   SAFE TO RUN MORE THAN ONCE
+     • The new record uses a fixed id ("converted_<oldId>"), so running again
+       overwrites the same record instead of creating a duplicate.
+     • Once an old month has been converted it is deleted, so the next run
+       simply finds nothing left to do.
    ========================================================================== */
 
 import {
@@ -22,125 +30,129 @@ import {
   getDocs,
   doc,
   setDoc,
-  updateDoc,
   deleteDoc,
   serverTimestamp,
-} from './firebase-config.js';
-import { qs, setLoading, showToast } from './ui.js';
+} from "./firebase-config.js";
+import { qs, setLoading, showToast, MONTH_NAMES } from "./ui.js";
 
 let logEl = null;
 
 /* Print one line in the on-page log. */
 function log(message) {
   if (logEl) logEl.textContent += `${message}\n`;
-  console.log('[migrate]', message);
+  console.log("[convert]", message);
 }
 
 export function initMigratePage(admin) {
-  logEl = qs('#migrate-log');
-  const button = qs('#migrate-start');
-  if (logEl) logEl.textContent = '';
+  logEl = qs("#migrate-log");
+  const button = qs("#migrate-start");
+  if (logEl) logEl.textContent = "";
 
-  button.addEventListener('click', async () => {
-    if (logEl) logEl.textContent = '';
+  button.addEventListener("click", async () => {
+    if (logEl) logEl.textContent = "";
     setLoading(button, true);
-    log(`Starting migration for ${admin.email} (uid: ${admin.uid})…`);
+    log(`Starting conversion for ${admin.email} (uid: ${admin.uid})…`);
 
     try {
-      await migrateStudents(admin.uid);
-      await migrateMonths(admin.uid);
-      log('Migration finished. Everything now belongs to your account.');
-      showToast('Migration finished.', 'success');
+      await convertMonthsToRecords(admin.uid);
+      log("Conversion finished.");
+      showToast("Conversion finished.", "success");
     } catch (error) {
       console.error(error);
       log(`ERROR: ${error.message}`);
-      showToast('Migration stopped — see the log.', 'error');
+      showToast("Conversion stopped — see the log.", "error");
     } finally {
       setLoading(button, false);
     }
   });
 }
 
-/* --------------------------------------------------------------------------
-   1. Tag students that have no owner yet.
-   -------------------------------------------------------------------------- */
-async function migrateStudents(uid) {
-  log('--- Students ---');
-  const snapshot = await getDocs(collection(db, 'students'));
-  let tagged = 0;
-  let skipped = 0;
-
-  for (const docSnap of snapshot.docs) {
-    const data = docSnap.data();
-    if (data.ownerId) { skipped += 1; continue; }
-
-    try {
-      await updateDoc(doc(db, 'students', docSnap.id), { ownerId: uid });
-      tagged += 1;
-    } catch (error) {
-      log(`  Could not tag student "${data.name || docSnap.id}": ${error.message}`);
-    }
-  }
-
-  log(`Students tagged: ${tagged}. Already had an owner: ${skipped}.`);
+/* Work out a friendly title for an old month, e.g. "November 2026". */
+function monthTitle(data, oldId) {
+  if (data.label) return data.label;
+  const ym = data.sortKey || oldId; // like "2026-11"
+  const year = Number(data.year) || Number(String(ym).slice(0, 4));
+  const month = Number(data.month) || Number(String(ym).slice(5, 7));
+  const name = MONTH_NAMES[month - 1] || ym;
+  return year ? `${name} ${year}` : name;
 }
 
 /* --------------------------------------------------------------------------
-   2. Move months from the plain "YYYY-MM" id to "<uid>_YYYY-MM".
+   The conversion itself
    -------------------------------------------------------------------------- */
-async function migrateMonths(uid) {
-  log('--- Months ---');
-  const snapshot = await getDocs(collection(db, 'months'));
-  const prefix = `${uid}_`;
-  let migrated = 0;
+async function convertMonthsToRecords(defaultOwnerId) {
+  log("--- Old monthly records → titled records ---");
+
+  const snapshot = await getDocs(collection(db, "months"));
+  if (snapshot.empty) {
+    log("No old monthly records found — nothing to convert.");
+    return;
+  }
+
+  let converted = 0;
   let skipped = 0;
 
   for (const monthSnap of snapshot.docs) {
     const oldId = monthSnap.id;
     const data = monthSnap.data();
 
-    // Already in the new format? Skip it.
-    if (oldId.startsWith(prefix)) { skipped += 1; continue; }
+    // Old months belong to whoever owned them. If an old month has no owner
+    // (pre-private workspaces), give it to the owner running this tool.
+    const ownerId = data.ownerId || defaultOwnerId;
+    const title = monthTitle(data, oldId);
 
-    const ym = data.sortKey || oldId;              // "2026-11"
-    const newId = `${uid}_${ym}`;
-
-    // Read the days BEFORE writing anything.
-    const daysSnap = await getDocs(collection(db, 'months', oldId, 'days'));
+    // Read the recorded dates BEFORE writing anything.
+    const daysSnap = await getDocs(collection(db, "months", oldId, "days"));
     const days = daysSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
 
+    // An empty month has no dates to keep — just remove it.
+    if (!days.length) {
+      try {
+        await deleteDoc(doc(db, "months", oldId));
+        skipped += 1;
+        log(`  “${title}” had no recorded dates — removed the empty month.`);
+      } catch (error) {
+        log(`  Could not remove the empty month “${title}”: ${error.message}`);
+      }
+      continue;
+    }
+
+    const newId = `converted_${oldId}`; // fixed id → no duplicates on a re-run
+
     try {
-      // a) Create the new month document.
-      await setDoc(doc(db, 'months', newId), {
-        ownerId: uid,
-        year: Number(data.year) || Number(ym.slice(0, 4)),
-        month: Number(data.month) || Number(ym.slice(5, 7)),
-        label: data.label || ym,
-        sortKey: ym,
+      // a) Create the new record with the month's name as its title.
+      await setDoc(doc(db, "records", newId), {
+        ownerId,
+        title,
         dayCount: days.length,
         createdAt: data.createdAt || serverTimestamp(),
       });
 
-      // b) Copy the daily records into the new month.
+      // b) Copy every recorded date (keeping the same date id).
       for (const day of days) {
-        await setDoc(doc(db, 'months', newId, 'days', day.id), {
-          ...day.data,
-          ownerId: uid,
+        await setDoc(doc(db, "records", newId, "days", day.id), {
+          ownerId,
+          date: day.data.date || day.id,
+          students: day.data.students || [],
+          count: (day.data.students || []).length,
+          updatedAt: day.data.updatedAt || serverTimestamp(),
         });
       }
 
-      // c) Delete the old days, then the old month.
+      // c) Delete the old dates, then the old month.
       for (const day of days) {
-        await deleteDoc(doc(db, 'months', oldId, 'days', day.id));
+        await deleteDoc(doc(db, "months", oldId, "days", day.id));
       }
-      await deleteDoc(doc(db, 'months', oldId));
+      await deleteDoc(doc(db, "months", oldId));
 
-      migrated += 1;
-      log(`  Moved ${ym} → ${newId} (${days.length} day${days.length === 1 ? '' : 's'}).`);
+      converted += 1;
+      log(
+        `  “${title}” → record (${days.length} recorded date${days.length === 1 ? "" : "s"}).`,
+      );
     } catch (error) {
-      log(`  Could not move ${ym}: ${error.message}`);
+      log(`  Could not convert “${title}”: ${error.message}`);
     }
   }
 
-  log(`Months moved: ${migrated}. Already in the new format: ${skipped}.`);
+  log(`Converted: ${converted}. Skipped (empty): ${skipped}.`);
 }
