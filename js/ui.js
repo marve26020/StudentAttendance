@@ -12,6 +12,23 @@
 import { APP_CONFIG } from "./config.js";
 
 /* --------------------------------------------------------------------------
+   Favicon — set once here so every page shows the same tab icon.
+   Every page imports ui.js (through auth.js), so this runs everywhere.
+   -------------------------------------------------------------------------- */
+(function setFavicon() {
+  const href = APP_CONFIG.faviconPath;
+  if (!href) return;
+  let link = document.querySelector('link[rel="icon"]');
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
+  }
+  link.href = href;
+  link.removeAttribute("type"); // let the browser detect png / ico / svg
+})();
+
+/* --------------------------------------------------------------------------
    Tiny DOM helpers
    -------------------------------------------------------------------------- */
 export const qs = (selector, root = document) => root.querySelector(selector);

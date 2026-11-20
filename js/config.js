@@ -8,10 +8,10 @@
 
 export const APP_CONFIG = {
   // Shown in the top navigation bar and at the top of the PDF.
-  schoolName: "Your School Name",
+  schoolName: "Peter University",
 
   // Shown under the school name in the navigation bar and in the PDF title.
-  programName: "Student Work Aid Program",
+  programName: "Achina/Onneh, Anambra State",
 
   // Your logo. Replace images/logo.png with your own file (keep the name),
   // or change the path here. If the file is missing we fall back to
@@ -25,4 +25,7 @@ export const APP_CONFIG = {
 
   // The downloaded PDF file is named like: Attendance-November-2026.pdf
   pdfFileNamePrefix: "Attendance",
+
+    // Browser-tab icon for EVERY page. Change this one value only.
+  faviconPath: "https://puni.edu.ng/uploads/img/favicon.ico", // or a full URL, or images/favicon.png
 };
