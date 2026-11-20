@@ -14,7 +14,7 @@
    -------------------------------------------------------------------------- */
 :root {
   /* --- Brand colours ------------------------------------------------ */
-  --color-primary:        #0f766e;  /* main accent (buttons, links, focus) */
+  --color-primary:        #0f2776;  /* main accent (buttons, links, focus) */
   --color-primary-dark:   #115e59;  /* hover / pressed state */
   --color-primary-soft:   #e6f4f2;  /* tinted backgrounds */
   --color-accent:         #d97706;  /* secondary highlight (badges, marks) */
