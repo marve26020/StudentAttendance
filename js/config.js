@@ -16,7 +16,7 @@ export const APP_CONFIG = {
   // Your logo. Replace images/logo.png with your own file (keep the name),
   // or change the path here. If the file is missing we fall back to
   // images/logo.svg so nothing looks broken.
-  logoPath: "images/logo.png",
+  logoPath: "images/schoolLogo (1).png",
   logoFallback: "images/logo.svg",
 
   // Optional: pre-fills the supervisor name line on the printed PDF.
